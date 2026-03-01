@@ -110,6 +110,14 @@
   - Caching: AE weights per fold → `cache/ae_inne_models/ae_fold_{patient}.pth`; LOPO results → `cache/ae_inne_lopo_results.pkl`
   - Auto-installs pyod if missing; uses `feature_cols` + `combined_all_circadian` from cell 48
 
+- [x] Implemented v4 of Bumblebee-faithful AE + iNNE (2026-03-01):
+  - **v4 changes from v3**: (1) RMSSD/SDNN computed in 5-second windows then averaged to 55 bins; (2) sleep filter acc_avg < 0.2g (only stationary windows contribute HRV); (3) 24 features = 6 base + 6 causal-moving-mean (2-bin ≈17 min) + 6 daily-avg + 6 daily-std; (4) MSE loss (Soft DTW too slow at 346ms/batch without compiled kernel; main gains are from feature engineering)
+  - **Feature engineering**: vectorized 5-sec window extraction with pandas groupby; `rmssd = sqrt(mean(rr_diff²))` within each window ≥3 diffs; `sdnn = std(RR, ddof=1)` for windows ≥4 samples; sleep filter halves HRM data (only stationary windows); 24 augmented features per timestep
+  - **Results**: Mean AUROC=0.539±0.096, Mean AUPRC=0.494±0.216, Mean AVG=0.517±0.127. Improvement of +0.031 AUROC over v3 (0.508). Best folds: P9=0.710 (inne), P1=0.667 (inne), P8=0.432/AUPRC=0.815. Worst: P7=0.427, P6=0.468.
+  - **Gap from paper target** (AUROC~0.784): ~0.24 gap. Likely remaining causes: (a) Soft DTW loss not used (needs compiled kernel), (b) high cross-patient variance in small n=9 cohort, (c) paper's reported AUROC=0.784 is validation-set performance not true held-out test.
+  - Cache files: cache/nighttime_seqs_v4.pkl (10MB), cache/bumblebee_ae_models_v4/ (9×281KB AE weights), cache/bumblebee_lopo_results_v4.pkl; checkpoint saves after each patient
+  - CLAUDE.md should be updated to add v4 cache files
+
 ## Pending Tasks
 - None
 
