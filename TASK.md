@@ -112,3 +112,23 @@
 
 ## Pending Tasks
 - None
+
+- [x] Added Bumblebee-faithful AE + iNNE cell with raw nighttime sequences (2026-03-01):
+  - New cell 51 appended after cell 50 (MLP AE + iNNE)
+  - Faithfully implements paper's approach: raw nighttime time-series input (55 bins × 6 features per night)
+  - Input features per bin: rmssd, sdnn, mean_hr, mean_rr, acc_mag, acc_pct (percentile rank of acc_mag within night)
+  - Binning: 480-minute night (00:00-08:00) into 55 bins; HRM filtered to RR 300-2000ms; <20 valid bins → skip
+  - BumbleBeeAE: Transformer AE (d_model=32, d_lat=16, nhead=4, 2 layers); encoder mean-pools to latent
+  - Soft DTW loss (gamma=0.1): batched pure-PyTorch; distance matrix via broadcasting + DP log-sum-exp softmin
+  - Training: Adam lr=1e-3, weight_decay=0.0038, MultiStepLR(milestones=[50,75], gamma=0.1), 100 epochs, batch=16
+  - LOPO: train on non-relapse val nights of other 8 patients; test on all nights of test patient
+  - iNNE(n_estimators=200) on latent space; AUROC + AUPRC + AVG reported per fold
+  - Caching: sequences → cache/nighttime_seqs_v1.pkl; AE per fold → cache/bumblebee_ae_models/; results → cache/bumblebee_lopo_results.pkl
+  - Self-contained: no dependency on prior cell variables; target AUROC >= 0.65 (paper ~0.784)
+
+- [x] Debugged and iterated Bumblebee cell 51 through 3 versions (2026-03-01):
+  - **v1 (original)**: Soft DTW loss — loss stuck at 228-233 (never decreases); AUROC=0.439 (worse than random). Diagnosis: Soft DTW has flat optimization landscape for this data — model outputs temporal mean at every position, making iNNE scores uninformative.
+  - **v2**: Switched to MSE loss + discovered decoder bug: `expand()` without positional encoding outputs IDENTICAL vector for all 55 timesteps (verified: max_diff=0.0). Fixed decoder to use positional queries attending to latent memory via TransformerDecoder. MSE loss now decreases (0.5→0.44). AUROC improved to 0.522 (best-of-recon-and-iNNE).
+  - **v3 (current)**: Added personalized adaptation: (1) pretrain AE on 1200+ non-relapse nights from other 8 patients, (2) fine-tune 30 epochs on test patient's own train+val non-relapse nights, (3) iNNE fit on test patient's encoded baseline, (4) score ONLY test splits (not val/train). Final results: Mean AUROC=0.508±0.120 (AUPRC=0.464±0.216). Best folds: P9=0.733, P1=0.625, P5=0.581. Worst: P8=0.349, P7=0.375.
+  - **Gap from paper**: Paper reports AUROC~0.784, AVG~0.742. Gap likely due to: (a) paper may use within-patient evaluation not true LOPO, (b) small n=9 patients creates high fold variance, (c) paper may use different preprocessing or architecture details.
+  - Final cache files: cache/nighttime_seqs_v2.pkl, cache/bumblebee_ae_models_v3/, cache/bumblebee_lopo_results_v3.pkl
