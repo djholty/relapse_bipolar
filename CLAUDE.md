@@ -41,7 +41,7 @@ The notebook follows a progressive feature engineering + modeling pipeline:
    - **Nighttime HRV** (cell 16): RMSSD and SDNN from HRM data during 00:00–08:00; cached to `cache/hrv_features_nighttime_v2.parquet` and `cache/hrv_baselines_nighttime_v2.pkl`.
    - **Sleep-verified HRV** (cell 24–25): HRV computed only during verified sleep periods; cached to `cache/hrv_sleep_verified.parquet`.
    - **Demographics** (cell 20–21): Age, sex, diagnosis loaded from `track1/demographics.csv`.
-   - **Circadian activity** (cell 29): Hourly activity profiles fused from gyroscope + linear accelerometer (weighted sum, time-aligned to 1s); percentage-based features for robustness; cached to `cache/circadian_features_fused_v2.parquet`.
+   - **Circadian activity** (cell 29): Hourly activity profiles fused from gyroscope + linear accelerometer (weighted sum, time-aligned to 1s); 15 features including clinically-validated actigraphy metrics (relative amplitude, intradaily variability, cosinor amplitude/acrophase, L5/M10 onset, evening activity); cached to `cache/circadian_features_fused_v3.parquet`.
 
 3. **Models** (cells 8–40): All models use LOPO (Leave-One-Patient-Out) cross-validation. Primary metrics: AUROC and AUPRC.
    - XGBoost and Logistic Regression on progressively richer feature sets.
@@ -55,7 +55,7 @@ Delete a cache file to force recomputation of that step. Cache filenames include
 All cached files:
 - `cache/hrv_features_nighttime_v2.parquet`, `cache/hrv_baselines_nighttime_v2.pkl`
 - `cache/hrv_sleep_verified.parquet`
-- `cache/circadian_features_fused_v2.parquet`
+- `cache/circadian_features_fused_v3.parquet`
 - `cache/transformer1_seq5.pth`, `cache/transformer2_seq5.pth`
 - `cache/lopo_cv_tuning.pkl`
 
