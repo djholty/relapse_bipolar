@@ -154,6 +154,15 @@
   - Cell 25: No changes needed — column names unchanged.
   - CLAUDE.md updated with new cache paths.
 
+- [x] Ran v7 Bumblebee AE+iNNE with Numba-JIT SoftDTW HP tuning (2026-03-03):
+  - Fixed macOS crash: `@njit(parallel=True)` + `prange` → `@njit` + `range` (eliminates libomp.dylib dual-init conflict between PyTorch and Numba). Also added `KMP_DUPLICATE_LIB_OK=TRUE` as belt-and-suspenders.
+  - Sequential JIT still ~220x faster than Python SoftDTW (2.3ms/batch vs 510ms).
+  - Results: Mean AUROC=0.531±0.122, AUPRC=0.486±0.241, AVG=0.508±0.166
+  - Best folds: P9 AUROC=0.752/AVG=0.795, P8 AUPRC=0.876, P1 AUROC=0.674
+  - Consistent HP tuning fixed v6 train/search mismatch (+0.021 AUROC vs v6=0.510), but still slightly below v5=0.541 (no HP tuning)
+  - P4 (val_avg=0.317) and P7 (val_avg=0.346) remain fundamentally hard folds — HP search finds no useful config, not a tuning artifact
+  - Cache: cache/bumblebee_hp_trials_v7/, cache/bumblebee_ae_models_v7/, cache/bumblebee_lopo_results_v7.pkl
+
 ## Pending Tasks
 - None
 
