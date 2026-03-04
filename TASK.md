@@ -163,6 +163,39 @@
   - P4 (val_avg=0.317) and P7 (val_avg=0.346) remain fundamentally hard folds — HP search finds no useful config, not a tuning artifact
   - Cache: cache/bumblebee_hp_trials_v7/, cache/bumblebee_ae_models_v7/, cache/bumblebee_lopo_results_v7.pkl
 
+- [x] Added window sweep cell 55 + ran all 12 windows (2026-03-03):
+  - Tests 12 overlapping 8-hour windows (start: 00, 02, ..., 22h; 2-hour stride, 480 min each)
+  - W18/W20/W22 are cross-midnight: pair d-1 evening portion + d morning portion
+  - AE + iNNE: same architecture and LOPO protocol as v7; per-patient v7 best HPs reused (read-only)
+  - Sleep filter (acc_avg < 0.2g) applied to all windows; daytime windows expected to yield few valid nights
+  - Memory-efficient extraction: one (patient, split) parquet loaded at a time → peak RAM ~6GB
+  - Caching: seqs per window → `cache/window_sweep/seqs_w{S:02d}.pkl`; AE per (window, fold) → `cache/window_sweep/ae_w{S:02d}/ae_fold_{P}.pth`; all results → `cache/window_sweep_results.pkl`
+  - Results (all 12/12 complete):
+    - **BEST: W14 (14:00–22:00) AUROC=0.546** (P9=0.872, P6=0.551, P2=0.529)
+    - W16 (16:00–00:00): 0.543; W00 baseline: 0.513; v7 HP-tuned W00 ref: 0.531
+    - Cross-midnight W18/W20/W22: 0.511/0.466/0.485 — no benefit
+    - Daytime W06–W12: 0.484–0.506 (fewer valid nights)
+    - W14 is +0.034 vs W00 sweep, +0.015 vs v7 HP-tuned
+  - Next: re-run W14 with full v7-style HP tuning to confirm (current HPs tuned for W00)
+
+- [x] Added W14 HP-tuned cell 56 (2026-03-03):
+  - Cell 56 appended to main.ipynb after re-injected window sweep (cell 55)
+  - Standalone re-run of v7 HP tuning protocol applied to W14 (14:00–22:00) sequences
+  - Key differences from v7: data=seqs_w14.pkl, _HP_MAX_EVALS=10, separate cache dirs (bumblebee_hp_trials_w14/, bumblebee_ae_models_w14/)
+  - All Numba JIT functions renamed with _w14 suffix to avoid namespace conflicts with cell 55
+  - Cache: cache/bumblebee_hp_trials_w14/trials_{P}.pkl (9 files), cache/bumblebee_ae_models_w14/ae_fold_{P}.pth (9 files), cache/bumblebee_lopo_results_w14.pkl
+  - Summary prints comparison vs v7 ref (AUROC=0.531) and W14 sweep (AUROC=0.546)
+  - Notebook restored from git (git restore main.ipynb) before adding cells
+
+- [x] Added per-patient window selection cell 57 (2026-03-04):
+  - Cell 57 appended to main.ipynb (cell index 57, total 58 cells)
+  - For each LOPO fold: evaluate all 12 window caches via val AUROC, pick W* = argmax; fallback W14 if no relapses in val
+  - No new AE training — 100% cached inference from `cache/window_sweep/ae_w{S:02d}/ae_fold_{P}.pth`
+  - Final evaluation: iNNE fit on train+val normals, scored on test; mirrors HP selection leakage profile exactly
+  - Standalone: redefines `_BumbleBeeAE_ws`, `_HP_SPACE_WS` (plain keys to match v7 trials), `_load_v7_hps`
+  - Output: `cache/per_patient_window_results.pkl` (written after each fold, crash-safe)
+  - Summary table: per-patient selected window + val AUROC + test AUROC/AUPRC/AVG + delta vs W14-HP and W14-sweep
+
 ## Pending Tasks
 - None
 
