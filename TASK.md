@@ -308,8 +308,18 @@
   - Part 2: full ranked table + d_model scaling summary + n_layers=3 vs 4 at d=1024. Overall best explicit.
   - Cache: combo_d1024_l{3,4}_dr0{1,2,3}.pkl in cache/transformer_bp_pad_hpgrid/
 
+### 2026-03-07 (continued)
+- [x] Added cell 74: d_model=2048, n_layers∈{3,4}, dropout∈{0.2,0.3,0.4} + updated unified table:
+  - Scaling trend still accelerating (512→1024: +0.0353); testing 2048 to find plateau.
+  - dropout=0.3 won at d=1024, so sweep {0.2,0.3,0.4}. n_layers=4 retested at higher capacity.
+  - Part 2: full ranked table + d_model scaling summary + n_layers=3 vs 4 at d=2048. Overall best explicit.
+  - Cache: combo_d2048_l{3,4}_dr0{2,3,4}.pkl in cache/transformer_bp_pad_hpgrid/
+
 ## Pending Tasks
 - None
+
+### 2026-03-07 (continued)
+- [x] Created `001_methods_results_narrative.md`: full methods/results narrative for paper covering all modeling lines (feature engineering, traditional ML, BumbleBee AE+iNNE, supervised Transformer). Sections: Feature Engineering, Traditional ML Baselines, Unsupervised Anomaly Detection, Supervised Transformer (Bipolar), Discussion of Failure Modes.
 
 ### 2026-03-04 (continued)
 - [x] Added cell 62: Bipolar Transformer + SMOTE Oversampling:
