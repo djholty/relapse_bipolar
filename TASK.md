@@ -275,6 +275,15 @@
   - Part 2: top-10 table by global mean AUROC + per-patient comparison vs c68-sl7 and c62.
   - Key variables: `_hpgrid_results` (sorted list), `_best_combo` (best HP dict).
 
+### 2026-03-07 (continued)
+- [x] Added cell 70: Bipolar Transformer + Padding — d_model=128 targeted extension:
+  - Motivation: c69 showed monotonic improvement 16→32→64 (~+0.01/step); test d_model=128.
+  - Fixed: n_layers=3 (dominant in c69 top-10), SEQ_LEN=7, NHEAD=4, BATCH=32, LR=1e-3, N_EPOCHS=80.
+  - Sweep: dropout∈{0.2,0.3,0.4} → 3 combos × 6 folds = 18 runs.
+  - NOTE: c62 is NOT a fair baseline — warm-up gap drops first 6 days of each test split (P4 all relapses days 0-10 silently excluded). Proper baseline: c68-sl7 (padding, full coverage).
+  - Cache: same dir as c69 — cache/transformer_bp_pad_hpgrid/combo_d128_l3_dr0{2,3,4}.pkl
+  - Part 2: summary table (Δ vs c68-sl7 and c69-best) + per-patient breakdown for best d=128 combo.
+
 ## Pending Tasks
 - None
 
