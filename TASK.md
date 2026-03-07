@@ -292,6 +292,14 @@
     Summary: best result per d_model to show scaling trend. Overall best combo printed explicitly.
   - Cache: combo_d256_l3_dr0{2,3,4}.pkl in same dir as c69/c70.
 
+### 2026-03-07 (continued)
+- [x] Added cell 72: d_model=512 + n_layers=4 extension + updated unified table:
+  - Part 1: d_model=512, n_layers∈{3,4}, dropout∈{0.2,0.3,0.4} → 6 combos × 6 folds = 36 runs.
+    Tests whether scaling trend continues (d=256→512) and whether n_layers=4 helps at larger capacity.
+  - Part 2: Reloads all cached combos, prints full ranked table + d_model scaling summary (best per d_model
+    with Δ prev) + n_layers=3 vs n_layers=4 breakdown at d=512. Overall best printed explicitly.
+  - Cache: combo_d512_l{3,4}_dr0{2,3,4}.pkl in same dir.
+
 ## Pending Tasks
 - None
 
