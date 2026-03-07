@@ -300,6 +300,14 @@
     with Δ prev) + n_layers=3 vs n_layers=4 breakdown at d=512. Overall best printed explicitly.
   - Cache: combo_d512_l{3,4}_dr0{2,3,4}.pkl in same dir.
 
+### 2026-03-07 (continued)
+- [x] Added cell 73: d_model=1024, n_layers∈{3,4}, dropout∈{0.1,0.2,0.3} + updated unified table:
+  - Scaling trend accelerating (256→512: +0.0241 — largest step yet); dropout optimal shifted to 0.2.
+  - n_layers=4 retested at 1024 — may benefit from higher capacity vs d=512 where it hurt.
+  - dropout sweep shifted to {0.1,0.2,0.3} (lower range) following trend at d=512.
+  - Part 2: full ranked table + d_model scaling summary + n_layers=3 vs 4 at d=1024. Overall best explicit.
+  - Cache: combo_d1024_l{3,4}_dr0{1,2,3}.pkl in cache/transformer_bp_pad_hpgrid/
+
 ## Pending Tasks
 - None
 
