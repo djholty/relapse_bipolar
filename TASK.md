@@ -375,3 +375,64 @@
   - Part 3: LOPO XGBoost + LR (same protocol as cell 35): per-fold feature importance ranking, top-K sweep (K∈{3,5,8,10,15,20,25,30,all}), LR L2/L1 at best K. Crash-safe cache at `cache/lopo_results_w14_hrv_v1.pkl`.
   - Part 4: Comparison table W14 vs W00 (pulls live from sweep_df if cell 35 ran, else hardcodes 0.530).
   - Standalone: all imports at top, dependency checks with graceful errors, no namespace conflicts with other cells.
+
+### 2026-03-09
+- [x] Added cell 35 (new): Circadian Features — Statistical Analysis + Performance Visualizations:
+  - **Part 1: T-Test Statistics Table** (15 features, val+test splits):
+    - Computes Welch's t-test and Mann-Whitney U test per feature (relapse vs non-relapse days)
+    - Effect size: Cohen's d
+    - Sorts by MWU p-value (most significant first)
+    - Includes sample counts and explicit note: "Days within patients are correlated; interpret p-values as exploratory"
+  - **Part 2: AUROC + AUPRC Bar Chart** (test splits only, all 15 features):
+    - Horizontal bar chart sorted by AUROC descending
+    - Dual bars per feature: AUROC (darker) + AUPRC (lighter)
+    - Color-coded by feature group: blue (percentage-based), green (clinically-validated), grey (count-based)
+    - Vertical dashed reference lines at AUROC=0.5 (red) and AUPRC=relapse_prevalence (orange)
+    - Figure size (10, 8)
+  - **Part 3: ROC Curves** (test splits, all 15 features):
+    - One curve per feature, color-coded by group
+    - AUC value in legend label
+    - Best feature highlighted with thicker line
+    - Diagonal random baseline
+    - Figure size (8, 7)
+  - **Part 4: PR Curves** (test splits, all 15 features):
+    - One curve per feature, same color scheme
+    - AP (average precision) in legend label
+    - Horizontal dashed reference line at prevalence
+    - Figure size (8, 7)
+  - Features analyzed:
+    - Percentage-based (4): night_activity_proportion, day_activity_proportion, circadian_deviation_pct, circadian_shift_pct
+    - Clinically-validated (7): evening_activity_proportion, relative_amplitude_zscore, l5_onset_deviation, m10_onset_deviation, intradaily_variability, cosinor_amplitude_zscore, cosinor_acrophase_deviation
+    - Count-based (4): circadian_deviation, night_activity_zscore, day_activity_zscore, circadian_shift
+  - All test-set metrics use best of raw and inverted feature directions
+  - Cell ID: d5d70289; inserted at index 35 (after original cell 34, before markdown cell at old index 35)
+
+### 2026-03-09 (continued)
+- [x] Added cell 77: Best Supervised Transformer on All 9 Patients (2026-03-09):
+  - Re-run best config (d_model=1024, n_layers=3, dropout=0.3, seq_len=7) on all 9 patients (P1–P9) via LOPO
+  - Motivation: test whether bipolar-tuned transformer generalizes across diagnoses (non-bipolar: P1 Brief Psychotic, P2 Schizophreniform, P7 Schizophrenia)
+  - Data: uses `combined_w14` (all-9 patients) instead of `combined_bp` (bipolar-only)
+  - Fixed HPs: d_model=1024, n_layers=3, dropout=0.3, nhead=4, seq_len=7, batch=32, lr=1e-3, n_epochs=80 (same as cell 73 best)
+  - Training data: val splits from 8 non-test patients (same protocol as bipolar cells)
+  - SMOTE on fully non-padded windows; padded-start windows appended as-is
+  - Left-pad + attention mask (reuses `_create_seqs_padded_bp` and `_SeqTransformerBP_P68` from prior cells)
+  - Cache: cache/transformer_all9_d1024_l3_dr03.pkl (dict: patient_id → {auroc, auprc, best_epoch, y_true, y_score})
+  - Output table: per-patient AUROC/AUPRC/AVG for all 9 patients, plus mean over all 9 and bipolar-only (6) for comparison
+  - Diagnosis labels loaded from `demographics` (defined in cell 24)
+  - Expected: modest drop from bipolar mean (~0.849) due to other diagnoses being harder; test hypothesis that transformer is diagnosis-specific
+  - **FIX 1 (2026-03-09)**: Corrected scope check to use `demographics` (not `demographics_df`); updated to require cell 24 instead of cell 0
+  - **FIX 2 (2026-03-09)**: Fixed mask dimension mismatch in SMOTE section. After SMOTE creates synthetic samples, masks must be extended to match (original masks + zero masks for synthetic samples). Bug was: `_masks_tr = np.vstack([_masks_tr[_full_tr], _masks_tr[~_full_tr]])` tried to match masks before and after SMOTE had different counts. Now: compute `_n_synthetic_new = len(_X_tr_full_3d_smo) - len(_X_tr_3d[_full_tr])` and create `_masks_tr_smo` with all False values for synthetics.
+  - **FIX 3 (2026-03-09)**: Fixed undefined variable NameError in SMOTE section. Changed `len(_X_tr_full_3d[_full_tr])` to `len(_X_tr_3d[_full_tr])` — the variable is `_X_tr_3d`, not `_X_tr_full_3d`.
+
+- [x] Fixed Cell 77 PART 4: Replace pooled aggregate curves with mean ROC/PR (2026-03-09):
+  - **Problem**: "Aggregate" curve computed by concatenating y_true/y_score across all 9 patients (pooled), giving AUROC ≈ 0.568 far below macro-average AUROC of 0.7928. Root cause: LOPO trains 9 separate models with different score distributions; pooling is meaningless.
+  - **Solution**: Standard LOPO visualization via mean ROC/PR curves using interpolation:
+    - **Mean ROC**: interpolate each patient's TPR at common FPR grid (0–1, 200 points), average across 9 patients, compute AUC
+    - **Mean PR**: interpolate each patient's precision at common recall grid (0–1, 200 points), average across 9 patients, compute AUC
+    - **Prevalence**: macro-average of per-patient relapse rates (not pooled concatenation)
+  - **Changes made**:
+    - Replaced pooled aggregate logic: `_y_true_agg = np.concatenate([...])` → per-patient interpolation at FPR/recall grids
+    - Updated labels: "Aggregate" → "Mean" (both ROC and PR plots + all legends)
+    - Updated print statements: show mean curve AUROC/AUPRC matched to macro-average from PART 2 summary
+    - Prevalence calculation: pooled → macro-average formula
+  - **Expected result**: `_auroc_agg` ≈ `_mean_auroc` (0.7928), ensuring Figure 1 thick curve matches PART 2 summary table
